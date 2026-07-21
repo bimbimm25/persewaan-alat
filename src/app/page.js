@@ -77,7 +77,7 @@ export default function Home() {
   };
 
   const handleCheckoutWA = () => {
-    const adminPhone = "6281234567890"; // Ganti nomor toko
+    const adminPhone = "6282232668881"; // Nomor WhatsApp Kamu
     const listBarang = cart
       .map((item, index) => `${index + 1}. ${item.name} (Rp ${Number(item.price_per_day).toLocaleString('id-ID')}/hari)`)
       .join('\n');
@@ -99,8 +99,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       
-      
-
       {/* Main Header */}
       <header className="bg-emerald-800 text-white sticky top-0 z-50 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
@@ -402,7 +400,7 @@ export default function Home() {
 
                 <div>
                   <h4 className="font-bold text-emerald-800 text-sm mb-1">Kontak WhatsApp:</h4>
-                  <p className="font-bold text-emerald-700">+62 812-3456-7890</p>
+                  <p className="font-bold text-emerald-700">+62 822-3266-8881</p>
                 </div>
               </div>
 
