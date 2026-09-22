@@ -1,45 +1,107 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useState } from 'react';
 import { 
-  ShoppingBag, MapPin, Phone, RefreshCw, Calendar, Search, 
-  ShieldCheck, HelpCircle, FileText, CheckCircle2, Clock, Truck, ChevronRight 
+  ShoppingBag, MapPin, Phone, Calendar, Search, 
+  ShieldCheck, HelpCircle, FileText, CheckCircle2, Clock, Truck 
 } from 'lucide-react';
 
+// Data dummy produk lokal
+const DUMMY_ITEMS = [
+  {
+    id: 1,
+    name: "Tenda Eiger Camp 4 Person",
+    category: "Tenda",
+    price_per_day: 45000,
+    stock: 4,
+    image_url: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 2,
+    name: "Carrier Osprey Atmos AG 65L",
+    category: "Carrier",
+    price_per_day: 55000,
+    stock: 3,
+    image_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 3,
+    name: "Sepatu Salomon Quest 4 GTX",
+    category: "Sepatu",
+    price_per_day: 40000,
+    stock: 3,
+    image_url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 4,
+    name: "Kompor Portable Mawar Windproof",
+    category: "Alat Masak",
+    price_per_day: 15000,
+    stock: 8,
+    image_url: "https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 5,
+    name: "Tenda Naturehike Mongar 2 UL",
+    category: "Tenda",
+    price_per_day: 35000,
+    stock: 5,
+    image_url: "https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 6,
+    name: "Carrier Deuter Aircontact 60+10L",
+    category: "Carrier",
+    price_per_day: 50000,
+    stock: 4,
+    image_url: "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 7,
+    name: "Paket Nesting + Kompor Gas",
+    category: "Alat Masak",
+    price_per_day: 25000,
+    stock: 6,
+    image_url: "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 8,
+    name: "Sleeping Bag Fleece Polar",
+    category: "Aksesoris",
+    price_per_day: 15000,
+    stock: 10,
+    image_url: "https://images.unsplash.com/photo-1517824806704-9040b037703b?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 9,
+    name: "Headlamp LED Rechargeable",
+    category: "Aksesoris",
+    price_per_day: 10000,
+    stock: 12,
+    image_url: "https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?auto=format&fit=crop&q=80&w=600"
+  },
+  {
+    id: 10,
+    name: "Trekking Pole Duralumin (Pasang)",
+    category: "Aksesoris",
+    price_per_day: 15000,
+    stock: 8,
+    image_url: "https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80&w=600"
+  }
+];
+
 export default function Home() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [items] = useState(DUMMY_ITEMS);
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState([]);
-  const [activeTab, setActiveTab] = useState("katalog"); // katalog | syarat | faq | kontak
+  const [activeTab, setActiveTab] = useState("katalog");
 
   // Tanggal Sewa
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Fetch Data dari Supabase
-  const fetchItems = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('items')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) {
-      console.error('Error mengambil data:', error.message);
-    } else {
-      setItems(data || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  // Hitung Hari
+  // Hitung Hari Sewa
   const calculateDays = () => {
     if (!startDate || !endDate) return 1;
     const start = new Date(startDate);
@@ -51,7 +113,7 @@ export default function Home() {
 
   const totalDays = calculateDays();
 
-  // Hitung Total Price
+  // Hitung Total Biaya
   const calculateTotalPrice = () => {
     const totalPerDay = cart.reduce((sum, item) => sum + Number(item.price_per_day), 0);
     return totalPerDay * totalDays;
@@ -59,7 +121,7 @@ export default function Home() {
 
   const categories = ["Semua", "Tenda", "Carrier", "Sepatu", "Alat Masak", "Aksesoris"];
 
-  // Filter Kategori + Search
+  // Filter Kategori & Pencarian
   const filteredItems = items.filter(item => {
     const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -70,14 +132,8 @@ export default function Home() {
     setCart([...cart, item]);
   };
 
-  const removeFromCart = (index) => {
-    const newCart = [...cart];
-    newCart.splice(index, 1);
-    setCart(newCart);
-  };
-
   const handleCheckoutWA = () => {
-    const adminPhone = "6282232668881"; // Nomor WhatsApp Kamu
+    const adminPhone = "6282232668881";
     const listBarang = cart
       .map((item, index) => `${index + 1}. ${item.name} (Rp ${Number(item.price_per_day).toLocaleString('id-ID')}/hari)`)
       .join('\n');
@@ -98,8 +154,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
-      
-      {/* Main Header */}
+      {/* Header Utama */}
       <header className="bg-emerald-800 text-white sticky top-0 z-50 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-2 font-bold text-2xl tracking-tight cursor-pointer" onClick={() => setActiveTab('katalog')}>
@@ -107,7 +162,6 @@ export default function Home() {
             <span>PuncakRent<span className="text-emerald-400">.outdoor</span></span>
           </div>
 
-          {/* Navigation Menu */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <button 
               onClick={() => setActiveTab('katalog')} 
@@ -141,7 +195,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Mobile Navigation Bar */}
+        {/* Mobile Navigation */}
         <div className="flex md:hidden bg-emerald-900 border-t border-emerald-700 justify-around py-2 text-xs font-medium text-emerald-100">
           <button onClick={() => setActiveTab('katalog')} className={activeTab === 'katalog' ? 'text-emerald-300 font-bold' : ''}>Katalog</button>
           <button onClick={() => setActiveTab('syarat')} className={activeTab === 'syarat' ? 'text-emerald-300 font-bold' : ''}>Syarat</button>
@@ -150,10 +204,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* --- TAB 1: KATALOG UTAMA --- */}
+      {/* --- TAB 1: KATALOG --- */}
       {activeTab === 'katalog' && (
         <>
-          {/* Hero Banner */}
           <section className="bg-linear-to-b from-emerald-900 to-emerald-800 text-white py-12 px-4 text-center">
             <div className="max-w-3xl mx-auto">
               <span className="bg-emerald-700/60 text-emerald-200 text-xs px-3 py-1 rounded-full font-medium border border-emerald-600">
@@ -168,11 +221,9 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Form Tanggal Sewa & Search Bar */}
+          {/* Form Tanggal & Filter Search */}
           <div className="max-w-5xl mx-auto -mt-6 px-4 relative z-10">
             <div className="bg-white p-5 rounded-2xl shadow-xl border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-              
-              {/* Tanggal Sewa */}
               <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                 <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
                   <Calendar size={18} className="text-emerald-600" />
@@ -195,7 +246,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Search Bar */}
               <div className="relative w-full md:w-64">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -206,14 +256,13 @@ export default function Home() {
                   className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-600 outline-none"
                 />
               </div>
-
             </div>
           </div>
 
-          {/* Keunggulan Toko Bar */}
+          {/* Fitur Keunggulan */}
           <div className="max-w-5xl mx-auto px-4 mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
-              <ShieldCheck className="text-emerald-600" size={18} /> Unit Steril & Clean
+              <ShieldCheck className="text-emerald-600" size={18} /> Unit Steril & Bersih
             </div>
             <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
               <CheckCircle2 className="text-emerald-600" size={18} /> Bebas Cek Kualitas
@@ -222,13 +271,12 @@ export default function Home() {
               <Clock className="text-emerald-600" size={18} /> Ambil / Kembali Cepat
             </div>
             <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
-              <Truck className="text-emerald-600" size={18} /> Siap COD / Kirim Instan
+              <Truck className="text-emerald-600" size={18} /> Siap COD / Antar Toko
             </div>
           </div>
 
-          {/* Main Content Catalog */}
+          {/* Grid Katalog */}
           <main className="max-w-6xl mx-auto px-4 py-8">
-            {/* Category Filter */}
             <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
               {categories.map((cat) => (
                 <button
@@ -245,24 +293,18 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Loading */}
-            {loading ? (
-              <div className="text-center py-20 flex justify-center items-center gap-2 text-emerald-800 font-medium text-sm">
-                <RefreshCw className="animate-spin" /> Memuat katalog alat gunung...
-              </div>
-            ) : filteredItems.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border p-8">
                 <p className="text-slate-500 font-medium">Tidak ada alat yang cocok dengan pencarian Anda.</p>
               </div>
             ) : (
-              /* Product Grid */
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredItems.map((item) => (
                   <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition duration-200 flex flex-col justify-between group">
                     <div>
                       <div className="h-48 bg-slate-100 overflow-hidden relative">
                         <img
-                          src={item.image_url || "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=400"}
+                          src={item.image_url}
                           alt={item.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />
@@ -276,7 +318,7 @@ export default function Home() {
                         <div className="flex items-baseline gap-1">
                           <span className="text-xs font-semibold text-slate-400">Rp</span>
                           <span className="text-xl font-extrabold text-emerald-800">
-                            {Number(item.price_per_day).toLocaleString('id-ID')}
+                            {item.price_per_day.toLocaleString('id-ID')}
                           </span>
                           <span className="text-[11px] text-slate-400 font-normal">/ hari</span>
                         </div>
@@ -313,33 +355,29 @@ export default function Home() {
             <div className="space-y-6 text-sm text-slate-700 leading-relaxed">
               <div>
                 <h3 className="font-bold text-emerald-800 text-base mb-2">1. Dokumen Jaminan (Wajib)</h3>
-                <p className="text-xs text-slate-600 mb-2">Penyewa wajib menjaminkan **2 Identitas Asli** yang masih berlaku dari daftar berikut:</p>
+                <p className="text-xs text-slate-600 mb-2">Penyewa wajib menjaminkan 2 Identitas Asli yang masih berlaku:</p>
                 <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1">
                   <li>KTP Asli (Wajib)</li>
                   <li>SIM A / C Asli</li>
                   <li>STNK Atas Nama Sendiri</li>
-                  <li>Kartu Tanda Mahasiswa / Pelajar</li>
+                  <li>Kartu Mahasiswa / Pelajar</li>
                 </ul>
               </div>
-
               <hr />
-
               <div>
                 <h3 className="font-bold text-emerald-800 text-base mb-2">2. Pengambilan & Pengembalian Alat</h3>
                 <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1">
                   <li>Hitungan sewa adalah per 24 jam terhitung dari jam pengambilan alat.</li>
-                  <li>Keterlambatan pengembalian tanpa konfirmasi akan dikenakan denda sebesar 50% dari harga sewa harian per jam.</li>
-                  <li>Penyewa wajib memeriksa kondisi fisik alat bersama staf toko saat pengambilan.</li>
+                  <li>Keterlambatan pengembalian tanpa konfirmasi dikenakan denda sesuai tarif harian.</li>
+                  <li>Penyewa memeriksa kelayakan kondisi alat saat pengambilan.</li>
                 </ul>
               </div>
-
               <hr />
-
               <div>
-                <h3 className="font-bold text-emerald-800 text-base mb-2">3. Tanggung Jawab Kerusakan / Kehilangan</h3>
+                <h3 className="font-bold text-emerald-800 text-base mb-2">3. Kerusakan / Kehilangan</h3>
                 <ul className="list-disc pl-5 text-xs text-slate-600 space-y-1">
-                  <li>Alat yang robek, patah, atau hilang menjadi tanggung jawab penyewa untuk biaya perbaikan atau penggantian unit baru.</li>
-                  <li>Alat dikembalikan dalam kondisi wajar (tidak perlu dicuci bersih total, biar tim staf toko yang sterilisasi).</li>
+                  <li>Alat yang robek, patah, atau hilang menjadi tanggung jawab penyewa untuk perbaikan atau penggantian.</li>
+                  <li>Pencucian dan sterilisasi alat setelah sewa ditangani penuh oleh tim toko.</li>
                 </ul>
               </div>
             </div>
@@ -355,60 +393,48 @@ export default function Home() {
               <HelpCircle size={28} className="text-emerald-700" />
               <div>
                 <h2 className="text-2xl font-bold text-slate-800">Pertanyaan Sering Diajukan (FAQ)</h2>
-                <p className="text-xs text-slate-500">Jawaban cepat untuk pertanyaan calon penyewa.</p>
+                <p className="text-xs text-slate-500">Jawaban cepat seputar penyewaan alat.</p>
               </div>
             </div>
-
             <div className="space-y-4">
               <div className="border rounded-xl p-4 bg-slate-50">
                 <h4 className="font-bold text-sm text-slate-800 mb-1">Apakah tenda perlu dicuci sebelum dikembalikan?</h4>
-                <p className="text-xs text-slate-600">Tidak perlu! Cukup bersihkan sisa tanah atau sampah di dalam tenda. Proses pencucian dan sterilisasi total dilakukan oleh tim kami gratis.</p>
+                <p className="text-xs text-slate-600">Tidak perlu! Cukup bersihkan sisa tanah atau sampah di dalam tenda. Pencucian steril dilakukan oleh pihak kami.</p>
               </div>
-
               <div className="border rounded-xl p-4 bg-slate-50">
                 <h4 className="font-bold text-sm text-slate-800 mb-1">Apakah bisa booking tanggal jauh-jauh hari?</h4>
-                <p className="text-xs text-slate-600">Sangat bisa! Kami merekomendasikan booking minimal H-3 terutama menjelang libur panjang (*long weekend*) agar tidak kehabisan stok.</p>
-              </div>
-
-              <div className="border rounded-xl p-4 bg-slate-50">
-                <h4 className="font-bold text-sm text-slate-800 mb-1">Bagaimana jika ingin sewa dalam jumlah banyak (Rombongan)?</h4>
-                <p className="text-xs text-slate-600">Silakan pilih alat di website lalu checkout via WhatsApp. Kami menyediakan diskon potongan harga khusus untuk pemesanan rombongan/organisasi.</p>
+                <p className="text-xs text-slate-600">Bisa! Kami menyarankan booking minimal H-3 agar stok barang pesanan Anda aman.</p>
               </div>
             </div>
           </div>
         </main>
       )}
 
-      {/* --- TAB 4: LOKASI TOKO --- */}
+      {/* --- TAB 4: KONTAK & LOKASI --- */}
       {activeTab === 'kontak' && (
         <main className="max-w-4xl mx-auto px-4 py-10">
           <div className="bg-white p-8 rounded-2xl border shadow-sm">
             <h2 className="text-2xl font-bold text-slate-800 mb-2">Lokasi & Operasional Toko</h2>
-            <p className="text-xs text-slate-500 mb-6">Silakan datang langsung ke basecamp/toko kami untuk cek alat.</p>
-
+            <p className="text-xs text-slate-500 mb-6">Silakan datang langsung ke basecamp/toko kami untuk cek fisik alat.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4 text-xs text-slate-700">
                 <div>
                   <h4 className="font-bold text-emerald-800 text-sm mb-1">Alamat Basecamp:</h4>
-                  <p>Jl. Pendaki Gunung No. 45, Kecamatan Outdoor, Kota Adventure 60123</p>
+                  <p>Jl. Raya Puncak No. 12, Jawa Timur</p>
                 </div>
-
                 <div>
                   <h4 className="font-bold text-emerald-800 text-sm mb-1">Jam Operasional:</h4>
                   <p>Senin - Minggu: 08.00 - 21.00 WIB</p>
                 </div>
-
                 <div>
-                  <h4 className="font-bold text-emerald-800 text-sm mb-1">Kontak WhatsApp:</h4>
+                  <h4 className="font-bold text-emerald-800 text-sm mb-1">WhatsApp Toko:</h4>
                   <p className="font-bold text-emerald-700">+62 822-3266-8881</p>
                 </div>
               </div>
-
-              {/* Tampilan Google Maps Mockup */}
               <div className="bg-slate-100 rounded-xl border flex flex-col items-center justify-center p-6 text-center">
                 <MapPin size={40} className="text-emerald-600 mb-2" />
-                <p className="font-bold text-xs text-slate-700">PuncakRent Outdoor Basecamp</p>
-                <p className="text-[10px] text-slate-400 mt-1 mb-3">Terintegrasi dengan Google Maps</p>
+                <p className="font-bold text-xs text-slate-700">PuncakRent Basecamp Store</p>
+                <p className="text-[10px] text-slate-400 mt-1 mb-3">Akses lokasi terhubung ke Google Maps</p>
                 <button className="bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-medium">
                   Buka Petunjuk Arah
                 </button>
@@ -418,7 +444,7 @@ export default function Home() {
         </main>
       )}
 
-      {/* --- FLOATING CHECKOUT BAR --- */}
+      {/* Floating Checkout */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between gap-6 z-50 w-11/12 max-w-2xl">
           <div>
@@ -436,7 +462,6 @@ export default function Home() {
           </button>
         </div>
       )}
-
     </div>
   );
 }
