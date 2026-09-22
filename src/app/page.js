@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { 
   ShoppingBag, MapPin, Phone, Calendar, Search, 
-  ShieldCheck, HelpCircle, FileText, CheckCircle2, Clock, Truck 
+  ShieldCheck, HelpCircle, FileText, CheckCircle2, Clock, Truck, 
+  Plus, Minus, Trash2, X, AlertCircle 
 } from 'lucide-react';
 
 // Data dummy produk lokal
@@ -94,8 +95,9 @@ export default function Home() {
   const [items] = useState(DUMMY_ITEMS);
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState([]); // Struktur: [{ ...item, quantity: 1 }]
   const [activeTab, setActiveTab] = useState("katalog");
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
   // Tanggal Sewa
   const [startDate, setStartDate] = useState('');
@@ -113,9 +115,12 @@ export default function Home() {
 
   const totalDays = calculateDays();
 
+  // Hitung Total Item (Jumlah Unit)
+  const totalItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   // Hitung Total Biaya
   const calculateTotalPrice = () => {
-    const totalPerDay = cart.reduce((sum, item) => sum + Number(item.price_per_day), 0);
+    const totalPerDay = cart.reduce((sum, item) => sum + (Number(item.price_per_day) * item.quantity), 0);
     return totalPerDay * totalDays;
   };
 
@@ -128,18 +133,69 @@ export default function Home() {
     return matchesCategory && matchesSearch;
   });
 
-  const addToCart = (item) => {
-    setCart([...cart, item]);
+  // Tambah ke Keranjang
+  const addToCart = (product) => {
+    const existingIndex = cart.findIndex((i) => i.id === product.id);
+    if (existingIndex > -1) {
+      const updatedCart = [...cart];
+      if (updatedCart[existingIndex].quantity < product.stock) {
+        updatedCart[existingIndex].quantity += 1;
+        setCart(updatedCart);
+      } else {
+        alert(`Maksimal stok yang tersedia hanya ${product.stock} unit.`);
+      }
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
   };
 
+  // Update Kuantitas
+  const updateQuantity = (id, delta) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (item.id === id) {
+            const newQty = item.quantity + delta;
+            if (newQty > item.stock) {
+              alert(`Maksimal stok tersedia hanya ${item.stock} unit.`);
+              return item;
+            }
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        })
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  // Hapus 1 Item dari Keranjang
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // Kosongkan Keranjang
+  const clearCart = () => {
+    if (confirm("Kosongkan semua daftar sewa?")) {
+      setCart([]);
+    }
+  };
+
+  // Kirim WhatsApp
   const handleCheckoutWA = () => {
+    if (cart.length === 0) return;
+
     const adminPhone = "6282232668881";
     const listBarang = cart
-      .map((item, index) => `${index + 1}. ${item.name} (Rp ${Number(item.price_per_day).toLocaleString('id-ID')}/hari)`)
+      .map(
+        (item, index) =>
+          `${index + 1}. ${item.name} (${item.quantity}x) - Rp ${(
+            Number(item.price_per_day) * item.quantity
+          ).toLocaleString('id-ID')}/hari`
+      )
       .join('\n');
 
-    const tglMulai = startDate || "Belum dipilih";
-    const tglSelesai = endDate || "Belum dipilih";
+    const tglMulai = startDate || "Belum ditentukan";
+    const tglSelesai = endDate || "Belum ditentukan";
     const totalHarga = calculateTotalPrice().toLocaleString('id-ID');
 
     const pesan = encodeURIComponent(
@@ -155,7 +211,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28">
       {/* Header Utama */}
-      <header className="bg-emerald-800 text-white sticky top-0 z-50 shadow-md">
+      <header className="bg-emerald-800 text-white sticky top-0 z-40 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-2 font-bold text-2xl tracking-tight cursor-pointer" onClick={() => setActiveTab('katalog')}>
             <MapPin className="text-emerald-400" />
@@ -189,9 +245,18 @@ export default function Home() {
             </button>
           </nav>
 
-          <button className="bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 px-4 py-2 rounded-xl flex items-center gap-2 transition text-sm font-semibold">
+          {/* Tombol Keranjang di Header */}
+          <button 
+            onClick={() => setIsCartModalOpen(true)}
+            className="bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 px-4 py-2 rounded-xl flex items-center gap-2 transition text-sm font-semibold relative"
+          >
             <ShoppingBag size={18} />
-            <span>{cart.length} Barang</span>
+            <span>{totalItemCount} Barang</span>
+            {totalItemCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-900 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+                {totalItemCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -327,7 +392,7 @@ export default function Home() {
                     <div className="p-4 pt-0">
                       <button
                         onClick={() => addToCart(item)}
-                        className="w-full bg-slate-900 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1"
+                        className="w-full bg-slate-900 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 cursor-pointer"
                       >
                         + Tambah ke Sewa
                       </button>
@@ -444,24 +509,182 @@ export default function Home() {
         </main>
       )}
 
-      {/* Floating Checkout */}
+      {/* --- FLOATING BOTTOM BAR (RINGKASAN & AKSES MODAL) --- */}
       {cart.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between gap-6 z-50 w-11/12 max-w-2xl">
-          <div>
-            <p className="text-[11px] text-slate-400">{cart.length} Peralatan Dipilih ({totalDays} Hari)</p>
-            <p className="font-extrabold text-emerald-400 text-xl">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between gap-6 z-40 w-11/12 max-w-2xl">
+          <div className="cursor-pointer" onClick={() => setIsCartModalOpen(true)}>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                {totalItemCount} Unit Alat
+              </span>
+              <span className="text-[11px] text-slate-400">({totalDays} Hari Sewa)</span>
+            </div>
+            <p className="font-extrabold text-emerald-400 text-xl tracking-tight mt-0.5">
               Rp {calculateTotalPrice().toLocaleString('id-ID')}
             </p>
           </div>
-          <button
-            onClick={handleCheckoutWA}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 text-xs transition shadow-lg"
-          >
-            <Phone size={16} />
-            Sewa via WhatsApp
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsCartModalOpen(true)}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-3 rounded-xl font-bold text-xs transition border border-slate-600 flex items-center gap-1.5 cursor-pointer"
+            >
+              <ShoppingBag size={15} />
+              <span className="hidden sm:inline">Rincian</span>
+            </button>
+            <button
+              onClick={handleCheckoutWA}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 text-xs transition shadow-lg cursor-pointer"
+            >
+              <Phone size={16} />
+              Sewa via WA
+            </button>
+          </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* --- MODAL POP-UP DETAIL KERANJANG (EDIT, UBAH JUMLAH, HAPUS ITEM) --- */}
+      {/* ========================================================================= */}
+      {isCartModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b bg-slate-50">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="text-emerald-700" size={20} />
+                <h3 className="font-bold text-base text-slate-800">
+                  Daftar Alat Dipilih ({totalItemCount} Unit)
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsCartModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body / Items List */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {cart.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <ShoppingBag size={48} className="mx-auto text-slate-300 mb-2" />
+                  <p className="font-medium text-sm">Keranjang sewa masih kosong</p>
+                  <p className="text-xs mt-1">Pilih perlengkapan dari katalog untuk menambahkan.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center pb-2 border-b text-xs text-slate-500">
+                    <span>Durasi Sewa: <strong>{totalDays} Hari</strong></span>
+                    <button 
+                      onClick={clearCart}
+                      className="text-rose-600 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <Trash2 size={13} /> Kosongkan
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-slate-100">
+                    {cart.map((item) => (
+                      <div key={item.id} className="py-3.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={item.image_url} 
+                            alt={item.name} 
+                            className="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0" 
+                          />
+                          <div>
+                            <h4 className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-1">{item.name}</h4>
+                            <p className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                              Rp {Number(item.price_per_day).toLocaleString('id-ID')} / hari
+                            </p>
+                            <span className="text-[10px] text-slate-400">
+                              Subtotal: Rp {(Number(item.price_per_day) * item.quantity * totalDays).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Kontrol Kuantitas & Hapus */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                            <button
+                              onClick={() => updateQuantity(item.id, -1)}
+                              className="p-1.5 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                              title="Kurangi"
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <span className="px-3 text-xs font-bold text-slate-800">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() => updateQuantity(item.id, 1)}
+                              className="p-1.5 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                              title="Tambah"
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            title="Hapus"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {(!startDate || !endDate) && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-amber-800 text-xs">
+                      <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-600" />
+                      <span>Tanggal sewa belum dipilih (dihitung default 1 hari). Atur tanggal di menu utama untuk hitungan akurat.</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            {cart.length > 0 && (
+              <div className="p-5 border-t bg-slate-50 flex flex-col gap-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Estimasi Total ({totalDays} Hari):</span>
+                  <span className="font-extrabold text-emerald-800 text-lg">
+                    Rp {calculateTotalPrice().toLocaleString('id-ID')}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsCartModalOpen(false)}
+                    className="w-1/3 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-white transition cursor-pointer"
+                  >
+                    Tambah Lagi
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsCartModalOpen(false);
+                      handleCheckoutWA();
+                    }}
+                    className="w-2/3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    <Phone size={15} />
+                    Kirim Pesanan ke WA
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
